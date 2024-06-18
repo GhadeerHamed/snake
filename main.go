@@ -11,9 +11,9 @@ import (
 const SnakeSymbol = 0x2588
 const AppleSymbol = 0x25CF
 
-const GameFrameWidth = 30
-const GameFrameHeight = 15
-const GameFrameSymbol = "|"
+const GameFrameWidth = 50
+const GameFrameHeight = 20
+const GameFrameSymbol = '|'
 
 type GameObject struct {
 	row, col, width, height int
@@ -49,6 +49,7 @@ func DrawState() {
 
 	screen.Clear()
 	PrintString(0,0,debugLog)
+	PrintGameFrame()
 	for _, obj := range gameObjects {
 		PrintFilledRect(obj.row, obj.col, obj.width, obj.height, obj.symbol)
 	}
@@ -128,6 +129,16 @@ func handleUserInput(key string) {
 	} 
 }
 
+func PrintGameFrame() {
+	sw, sh := screen.Size()
+
+	topLeftRow, topLeftCol := sh/2 - GameFrameHeight/2 -1, sw/2 - GameFrameWidth/2 -1
+	width, heigh := GameFrameWidth+2, GameFrameHeight+2
+
+	PrintUnFilledRect(topLeftRow, topLeftCol, width, heigh, GameFrameSymbol)
+	PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
+}
+
 func PrintString(row, col int, str string) {
 	for _, c := range str {
 		PrintFilledRect(col, row, 1, 1, c)
@@ -145,5 +156,23 @@ func PrintFilledRect(row, col, width, height int, ch rune) {
 		for c := 0; c < width; c++ {
 			screen.SetContent(col+c, row+r, ch, nil, tcell.StyleDefault)
 		}
+	}
+}
+
+func PrintUnFilledRect(row, col, width, height int, ch rune) {
+	// print first row
+	for c := 0; c < width; c++ {
+		screen.SetContent(col+c, row, ch, nil, tcell.StyleDefault)
+	}
+
+	// print first col, last col only for each row
+	for r := 1; r < height-1; r++ {
+		screen.SetContent(col, row+r, ch, nil, tcell.StyleDefault)
+		screen.SetContent(col+width-1, row+r, ch, nil, tcell.StyleDefault)
+	}
+
+	// print last row
+	for c := 0; c < width; c++ {
+		screen.SetContent(col+c, row+height-1, ch, nil, tcell.StyleDefault)
 	}
 }
