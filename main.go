@@ -8,6 +8,16 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+/*
+//
+//  ███████╗███╗   ██╗ █████╗ ██╗  ██╗███████╗
+//  ██╔════╝████╗  ██║██╔══██╗██║ ██╔╝██╔════╝
+//  █████╗  ██╔██╗ ██║███████║█████╔╝ █████╗
+//  ██╔══╝  ██║╚██╗██║██╔══██║██╔═██╗ ██╔══╝
+//  ███████╗██║ ╚████║██║  ██║██║  ██╗███████╗
+//  ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+*/
+
 const SnakeSymbol = 0x2588
 const AppleSymbol = 0x25CF
 
@@ -15,17 +25,27 @@ const GameFrameWidth = 50
 const GameFrameHeight = 20
 const GameFrameSymbol = '|'
 
-type GameObject struct {
-	row, col, width, height int
-	velRow, velCol          int
-	symbol                  rune
+type Point struct {
+	row, col int
+}
+
+type Snake struct {
+	parts          []*Point
+	velRow, velCol int
+	symbol         rune
+}
+
+type Apple struct {
+	point  *Point
+	symbol rune
 }
 
 var screen tcell.Screen
+var snake *Snake
+var apple *Apple
+
 var IsGamePaused bool
 var debugLog string
-
-var gameObjects []*GameObject
 
 func main() {
 	initScreen()
@@ -48,11 +68,10 @@ func DrawState() {
 	}
 
 	screen.Clear()
-	PrintString(0,0,debugLog)
+	PrintString(0, 0, debugLog)
 	PrintGameFrame()
-	for _, obj := range gameObjects {
-		PrintFilledRect(obj.row, obj.col, obj.width, obj.height, obj.symbol)
-	}
+	PrintSnake()
+	PrintApple()
 
 	screen.Show()
 }
@@ -62,17 +81,9 @@ func UpdateState() {
 		return
 	}
 
-	for i := range gameObjects {
-		gameObjects[i].row += gameObjects[i].velRow
-		gameObjects[i].col += gameObjects[i].velCol
-	}
-}
+	// Update snake + Apple positions
 
-func CollidesWithWall(obj *GameObject) bool {
-	_, screenHeight := screen.Size()
-	return obj.row+obj.velRow < 0 || obj.row+obj.velRow >= screenHeight
 }
-
 
 func initUserInput() chan string {
 	inputChan := make(chan string)
@@ -108,7 +119,22 @@ func initScreen() {
 }
 
 func initGameState() {
-	gameObjects = []*GameObject{}
+	snake = &Snake{
+		parts: []*Point{
+			{row: 5, col: 3},
+			{row: 6, col: 3},
+			{row: 7, col: 3},
+			{row: 8, col: 3},
+			{row: 9, col: 3},
+		},
+		velRow: -1,
+		velCol: 0,
+		symbol: SnakeSymbol,
+	}
+	apple = &Apple{
+		point:  &Point{row: 15, col: 15},
+		symbol: AppleSymbol,
+	}
 }
 
 func readInput(inputChan chan string) string {
@@ -126,17 +152,36 @@ func handleUserInput(key string) {
 	if key == "Rune[q]" {
 		screen.Fini()
 		os.Exit(0)
-	} 
+	}
 }
 
 func PrintGameFrame() {
-	sw, sh := screen.Size()
-
-	topLeftRow, topLeftCol := sh/2 - GameFrameHeight/2 -1, sw/2 - GameFrameWidth/2 -1
+	topLeftRow, topLeftCol := GetGameFrameTopLeft()
 	width, heigh := GameFrameWidth+2, GameFrameHeight+2
 
 	PrintUnFilledRect(topLeftRow, topLeftCol, width, heigh, GameFrameSymbol)
 	PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
+}
+
+func PrintSnake() {
+	for _, p := range snake.parts {
+		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, snake.symbol)
+	}
+}
+
+func PrintFilledRectInGameFrame(row, col, width, height int, ch rune) {
+	r, c := GetGameFrameTopLeft()
+	PrintFilledRect(row+r, col+c, width, height, ch)
+}
+
+func GetGameFrameTopLeft() (int, int) {
+	screenWidth, screenHeight := screen.Size()
+	r, c := screenHeight/2-GameFrameHeight/2, screenWidth/2-GameFrameWidth/2
+	return r, c
+}
+
+func PrintApple() {
+	PrintFilledRectInGameFrame(apple.point.row, apple.point.col, 1, 1, apple.symbol)
 }
 
 func PrintString(row, col int, str string) {
