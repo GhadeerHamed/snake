@@ -217,8 +217,8 @@ func initGameState() {
 			{row: 6, col: 3},
 			{row: 5, col: 3}, // head
 		},
-		velRow: -1,
-		velCol: 0,
+		velRow: 0,
+		velCol: 1,
 		symbol: SnakeSymbol,
 	}
 	apple = &Apple{
