@@ -262,7 +262,7 @@ func PrintApple() {
 
 func PrintString(row, col int, str string) {
 	for _, c := range str {
-		PrintFilledRect(col, row, 1, 1, c)
+		PrintFilledRect(row, col, 1, 1, c)
 		col += 1
 	}
 }
