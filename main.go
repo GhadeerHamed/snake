@@ -61,11 +61,20 @@ func main() {
 	initScreen()
 	initGameState()
 	inputChan := initUserInput()
+	var elapsed time.Duration
+	lastTick := time.Now()
 
 	for !isGameOver {
+		now := time.Now()
+		if !IsGamePaused && screenFits() {
+			elapsed += now.Sub(lastTick)
+		}
+		lastTick = now
 		handleUserInput(readInput(inputChan))
-		UpdateState()
-		DrawState()
+		if screenFits() {
+			UpdateState()
+		}
+		DrawState(elapsed)
 
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -78,17 +87,23 @@ func main() {
 	screen.Fini()
 }
 
-func DrawState() {
-	if IsGamePaused {
+func screenFits() bool {
+	width, height := screen.Size()
+	return width >= GameFrameWidth+1 && height >= GameFrameHeight+2
+}
+
+func DrawState(elapsed time.Duration) {
+	screen.Clear()
+	if !screenFits() {
+		PrintString(0, 0, fmt.Sprintf("Terminal too small. Need at least %dx%d. Resize or press q.", GameFrameWidth+1, GameFrameHeight+2))
+		screen.Show()
 		return
 	}
 
-	//screen.Clear()
-	for _, p := range pointsToClear {
-		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, ' ')
-	}
-
 	pointsToClear = []*Point{}
+	row, col := GetGameFrameTopLeft()
+	seconds := int(elapsed.Seconds())
+	PrintString(row-1, col, fmt.Sprintf("Score: %d  Time: %02d:%02d", score, seconds/60, seconds%60))
 	PrintGameFrame()
 	DrawSnake()
 	DrawApple()
@@ -274,7 +289,7 @@ func PrintFilledRectInGameFrame(row, col, width, height int, ch rune) {
 
 func GetGameFrameTopLeft() (int, int) {
 	screenWidth, screenHeight := screen.Size()
-	r, c := screenHeight/2-GameFrameHeight/2, screenWidth/2-GameFrameWidth/2
+	r, c := (screenHeight-(GameFrameHeight+2))/2+1, (screenWidth-(GameFrameWidth+1))/2
 	return r, c
 }
 
