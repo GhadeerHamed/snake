@@ -44,23 +44,30 @@ type Apple struct {
 var screen tcell.Screen
 var snake *Snake
 var apple *Apple
-
+var score int
+var isGameOver bool
 var IsGamePaused bool
 var debugLog string
 
 func main() {
 	initScreen()
 	initGameState()
-
 	inputChan := initUserInput()
 
-	for {
+	for !isGameOver {
 		handleUserInput(readInput(inputChan))
-
 		UpdateState()
 		DrawState()
-		time.Sleep(150 * time.Millisecond)
+
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	screenWidth, screenHeight := screen.Size()
+	PrintStringCenter(screenHeight/2, screenWidth/2, "Game Over!")
+	PrintStringCenter(screenHeight/2+1, screenWidth/2, fmt.Sprintf("Your score: %d", score))
+	screen.Show()
+	time.Sleep(3 * time.Second)
+	screen.Fini()
 }
 
 func DrawState() {
@@ -93,16 +100,15 @@ func UpdateSnake() {
 		row: head.row + snake.velRow,
 		col: head.col + snake.velCol,
 	})
-	
+
 	if !AppleInsideSnake() {
 		snake.parts = snake.parts[1:] // remove the tail
+	} else {
+		score++
 	}
 
 	if SnakeCollidedWithWall() || SnakeCollidedWithItself() {
-		time.Sleep(3 * time.Second)
-		screen.Fini()
-		fmt.Println("Game Over!")
-		os.Exit(0)
+		isGameOver = true
 	}
 }
 
@@ -118,7 +124,7 @@ func SnakeCollidedWithItself() bool {
 
 func SnakeCollidedWithWall() bool {
 	head := snake.parts[len(snake.parts)-1]
-	if head.row < 1 || head.row > GameFrameHeight || 
+	if head.row < 1 || head.row > GameFrameHeight ||
 		head.col < 1 || head.col > GameFrameWidth {
 		return true
 	}
@@ -127,7 +133,8 @@ func SnakeCollidedWithWall() bool {
 
 func UpdateApple() {
 	for AppleInsideSnake() {
-		apple.point.row , apple.point.col = rand.Intn(GameFrameHeight - 2) + 1, rand.Intn(GameFrameWidth - 2) + 1
+		apple.point.row, apple.point.col =
+			rand.Intn(GameFrameHeight-2)+1, rand.Intn(GameFrameWidth-2)+1
 	}
 }
 
@@ -209,7 +216,7 @@ func handleUserInput(key string) {
 		os.Exit(0)
 	} else if key == "Rune[p]" {
 		IsGamePaused = !IsGamePaused
-	} else if key == "Up"  && snake.velRow != 1 {
+	} else if key == "Up" && snake.velRow != 1 {
 		snake.velRow = -1
 		snake.velCol = 0
 	} else if key == "Down" && snake.velRow != -1 {
@@ -226,7 +233,7 @@ func handleUserInput(key string) {
 
 func PrintGameFrame() {
 	topLeftRow, topLeftCol := GetGameFrameTopLeft()
-	width, height := GameFrameWidth+2, GameFrameHeight+2
+	width, height := GameFrameWidth+1, GameFrameHeight+1
 
 	PrintUnFilledRect(topLeftRow, topLeftCol, width, height, GameFrameSymbol)
 	// PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
