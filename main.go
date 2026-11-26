@@ -58,7 +58,7 @@ func main() {
 
 		UpdateState()
 		DrawState()
-		time.Sleep(75 * time.Millisecond)
+		time.Sleep(175 * time.Millisecond)
 	}
 }
 
@@ -81,8 +81,20 @@ func UpdateState() {
 		return
 	}
 
+	UpdateSnake()
 	// Update snake + Apple positions
 
+}
+
+func UpdateSnake() {
+	// add a new element
+	head := snake.parts[len(snake.parts)-1]
+	snake.parts = append(snake.parts, &Point{
+		row: head.row + snake.velRow,
+		col: head.col + snake.velCol,
+	})
+	
+	snake.parts = snake.parts[1:] // remove the tail
 }
 
 func initUserInput() chan string {
@@ -121,11 +133,11 @@ func initScreen() {
 func initGameState() {
 	snake = &Snake{
 		parts: []*Point{
-			{row: 5, col: 3},
-			{row: 6, col: 3},
-			{row: 7, col: 3},
+			{row: 9, col: 3}, // tail
 			{row: 8, col: 3},
-			{row: 9, col: 3},
+			{row: 7, col: 3},
+			{row: 6, col: 3},
+			{row: 5, col: 3}, // head
 		},
 		velRow: -1,
 		velCol: 0,
@@ -152,6 +164,20 @@ func handleUserInput(key string) {
 	if key == "Rune[q]" {
 		screen.Fini()
 		os.Exit(0)
+	} else if key == "Rune[p]" {
+		IsGamePaused = !IsGamePaused
+	} else if key == "Up"  && snake.velRow != 1 {
+		snake.velRow = -1
+		snake.velCol = 0
+	} else if key == "Down" && snake.velRow != -1 {
+		snake.velRow = 1
+		snake.velCol = 0
+	} else if key == "Left" && snake.velCol != 1 {
+		snake.velRow = 0
+		snake.velCol = -1
+	} else if key == "Right" && snake.velCol != -1 {
+		snake.velRow = 0
+		snake.velCol = 1
 	}
 }
 
