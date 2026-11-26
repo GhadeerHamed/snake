@@ -95,7 +95,7 @@ func UpdateState() {
 
 func UpdateSnake() {
 	// add a new element
-	head := snake.parts[len(snake.parts)-1]
+	head := GetSnakeHead()
 	snake.parts = append(snake.parts, &Point{
 		row: head.row + snake.velRow,
 		col: head.col + snake.velCol,
@@ -112,8 +112,12 @@ func UpdateSnake() {
 	}
 }
 
+func GetSnakeHead() *Point {
+	return snake.parts[len(snake.parts)-1]
+}
+
 func SnakeCollidedWithItself() bool {
-	head := snake.parts[len(snake.parts)-1]
+	head := GetSnakeHead()
 	for _, p := range snake.parts[:len(snake.parts)-1] {
 		if p.row == head.row && p.col == head.col {
 			return true
@@ -123,7 +127,7 @@ func SnakeCollidedWithItself() bool {
 }
 
 func SnakeCollidedWithWall() bool {
-	head := snake.parts[len(snake.parts)-1]
+	head := GetSnakeHead()
 	if head.row < 1 || head.row > GameFrameHeight ||
 		head.col < 1 || head.col > GameFrameWidth {
 		return true
