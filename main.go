@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -58,7 +59,7 @@ func main() {
 
 		UpdateState()
 		DrawState()
-		time.Sleep(175 * time.Millisecond)
+		time.Sleep(150 * time.Millisecond)
 	}
 }
 
@@ -82,8 +83,7 @@ func UpdateState() {
 	}
 
 	UpdateSnake()
-	// Update snake + Apple positions
-
+	UpdateApple()
 }
 
 func UpdateSnake() {
@@ -94,7 +94,24 @@ func UpdateSnake() {
 		col: head.col + snake.velCol,
 	})
 	
-	snake.parts = snake.parts[1:] // remove the tail
+	if !AppleInsideSnake() {
+		snake.parts = snake.parts[1:] // remove the tail
+	}
+}
+
+func UpdateApple() {
+	for AppleInsideSnake() {
+		apple.point.row , apple.point.col = rand.Intn(GameFrameHeight - 4) + 2, rand.Intn(GameFrameWidth - 4) + 2
+	}
+}
+
+func AppleInsideSnake() bool {
+	for _, p := range snake.parts {
+		if p.row == apple.point.row && p.col == apple.point.col {
+			return true
+		}
+	}
+	return false
 }
 
 func initUserInput() chan string {
@@ -126,7 +143,7 @@ func initScreen() {
 
 	defStyle := tcell.StyleDefault.
 		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorWhite)
+		Foreground(tcell.ColorGreen)
 	screen.SetStyle(defStyle)
 }
 
@@ -183,9 +200,9 @@ func handleUserInput(key string) {
 
 func PrintGameFrame() {
 	topLeftRow, topLeftCol := GetGameFrameTopLeft()
-	width, heigh := GameFrameWidth+2, GameFrameHeight+2
+	width, height := GameFrameWidth+2, GameFrameHeight+2
 
-	PrintUnFilledRect(topLeftRow, topLeftCol, width, heigh, GameFrameSymbol)
+	PrintUnFilledRect(topLeftRow, topLeftCol, width, height, GameFrameSymbol)
 	PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
 }
 
