@@ -19,7 +19,7 @@ import (
 //
 */
 
-const SnakeSymbol = '*'
+const SnakeSymbol = '█'
 const AppleSymbol = 0x25CF
 
 const GameFrameWidth = 50
@@ -52,7 +52,8 @@ var screen tcell.Screen
 var snake *Snake
 var apple *Apple
 var score int
-var pointsToClear []*Point
+var pointsToClear []Point
+var lastScreenWidth, lastScreenHeight int
 var isGameOver bool
 var IsGamePaused bool
 var debugLog string
@@ -66,8 +67,9 @@ func main() {
 
 	for !isGameOver {
 		now := time.Now()
+		delta := now.Sub(lastTick)
 		if !IsGamePaused && screenFits() {
-			elapsed += now.Sub(lastTick)
+			elapsed += delta
 		}
 		lastTick = now
 		handleUserInput(readInput(inputChan))
@@ -89,18 +91,26 @@ func main() {
 
 func screenFits() bool {
 	width, height := screen.Size()
-	return width >= GameFrameWidth+1 && height >= GameFrameHeight+2
+	return width >= GameFrameWidth*2+1 && height >= GameFrameHeight+2
 }
 
 func DrawState(elapsed time.Duration) {
-	screen.Clear()
+	width, height := screen.Size()
+	if width != lastScreenWidth || height != lastScreenHeight {
+		screen.Clear()
+		pointsToClear = nil
+		lastScreenWidth, lastScreenHeight = width, height
+	}
 	if !screenFits() {
-		PrintString(0, 0, fmt.Sprintf("Terminal too small. Need at least %dx%d. Resize or press q.", GameFrameWidth+1, GameFrameHeight+2))
+		PrintString(0, 0, fmt.Sprintf("Terminal too small. Need at least %dx%d. Resize or press q.", GameFrameWidth*2+1, GameFrameHeight+2))
 		screen.Show()
 		return
 	}
 
-	pointsToClear = []*Point{}
+	for _, p := range pointsToClear {
+		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, ' ')
+	}
+	pointsToClear = nil
 	row, col := GetGameFrameTopLeft()
 	seconds := int(elapsed.Seconds())
 	PrintString(row-1, col, fmt.Sprintf("Score: %d  Time: %02d:%02d", score, seconds/60, seconds%60))
@@ -114,13 +124,14 @@ func DrawState(elapsed time.Duration) {
 func DrawSnake() {
 	for _, p := range snake.parts {
 		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, snake.symbol)
-		pointsToClear = append(pointsToClear, p)
+		pointsToClear = append(pointsToClear, *p)
 	}
 }
 
 func DrawApple() {
-	PrintFilledRectInGameFrame(apple.point.row, apple.point.col, 1, 1, apple.symbol)
-	pointsToClear = append(pointsToClear, apple.point)
+	r, c := GetGameFrameTopLeft()
+	PrintFilledRect(r+apple.point.row, c+apple.point.col*2, 1, 1, apple.symbol)
+	pointsToClear = append(pointsToClear, *apple.point)
 }
 
 func UpdateState() {
@@ -276,7 +287,7 @@ func handleUserInput(key string) {
 
 func PrintGameFrame() {
 	topLeftRow, topLeftCol := GetGameFrameTopLeft()
-	width, height := GameFrameWidth+1, GameFrameHeight+1
+	width, height := GameFrameWidth*2+1, GameFrameHeight+1
 
 	PrintUnFilledRect(topLeftRow, topLeftCol, width, height)
 	// PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
@@ -284,12 +295,12 @@ func PrintGameFrame() {
 
 func PrintFilledRectInGameFrame(row, col, width, height int, ch rune) {
 	r, c := GetGameFrameTopLeft()
-	PrintFilledRect(row+r, col+c, width, height, ch)
+	PrintFilledRect(row+r, col*2+c, width*2, height, ch)
 }
 
 func GetGameFrameTopLeft() (int, int) {
 	screenWidth, screenHeight := screen.Size()
-	r, c := (screenHeight-(GameFrameHeight+2))/2+1, (screenWidth-(GameFrameWidth+1))/2
+	r, c := (screenHeight-(GameFrameHeight+2))/2+1, (screenWidth-(GameFrameWidth*2+1))/2
 	return r, c
 }
 
