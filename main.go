@@ -97,11 +97,37 @@ func UpdateSnake() {
 	if !AppleInsideSnake() {
 		snake.parts = snake.parts[1:] // remove the tail
 	}
+
+	if SnakeCollidedWithWall() || SnakeCollidedWithItself() {
+		time.Sleep(3 * time.Second)
+		screen.Fini()
+		fmt.Println("Game Over!")
+		os.Exit(0)
+	}
+}
+
+func SnakeCollidedWithItself() bool {
+	head := snake.parts[len(snake.parts)-1]
+	for _, p := range snake.parts[:len(snake.parts)-1] {
+		if p.row == head.row && p.col == head.col {
+			return true
+		}
+	}
+	return false
+}
+
+func SnakeCollidedWithWall() bool {
+	head := snake.parts[len(snake.parts)-1]
+	if head.row < 1 || head.row > GameFrameHeight || 
+		head.col < 1 || head.col > GameFrameWidth {
+		return true
+	}
+	return false
 }
 
 func UpdateApple() {
 	for AppleInsideSnake() {
-		apple.point.row , apple.point.col = rand.Intn(GameFrameHeight - 4) + 2, rand.Intn(GameFrameWidth - 4) + 2
+		apple.point.row , apple.point.col = rand.Intn(GameFrameHeight - 2) + 1, rand.Intn(GameFrameWidth - 2) + 1
 	}
 }
 
@@ -203,7 +229,7 @@ func PrintGameFrame() {
 	width, height := GameFrameWidth+2, GameFrameHeight+2
 
 	PrintUnFilledRect(topLeftRow, topLeftCol, width, height, GameFrameSymbol)
-	PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
+	// PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
 }
 
 func PrintSnake() {
