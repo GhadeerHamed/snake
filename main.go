@@ -11,20 +11,27 @@ import (
 
 /*
 //
-//  ███████╗███╗   ██╗ █████╗ ██╗  ██╗███████╗
-//  ██╔════╝████╗  ██║██╔══██╗██║ ██╔╝██╔════╝
-//  █████╗  ██╔██╗ ██║███████║█████╔╝ █████╗
-//  ██╔══╝  ██║╚██╗██║██╔══██║██╔═██╗ ██╔══╝
-//  ███████╗██║ ╚████║██║  ██║██║  ██╗███████╗
-//  ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+//  ███████╗███╗   ██╗█████╗  ███╗   ██╗███████╗
+//  ██╔════╝████╗  ██║██╔══██╗████╗  ██║██╔════╝
+//  ███████╗██╔██╗ ██║███████║██╔██╗ ██║█████╗
+//       ██║██║╚██╗██║██╔══██║██║╚██╗██║██╔══╝
+//  ███████║██║ ╚████║██║  ██║██║ ╚████║███████╗
+//
 */
 
-const SnakeSymbol = 0x2588
+const SnakeSymbol = '*'
 const AppleSymbol = 0x25CF
 
 const GameFrameWidth = 50
 const GameFrameHeight = 20
-const GameFrameSymbol = '|'
+const (
+	GameFrameHorizontalSymbol  = '─'
+	GameFrameVerticalSymbol    = '│'
+	GameFrameTopLeftSymbol     = '┌'
+	GameFrameTopRightSymbol    = '┐'
+	GameFrameBottomLeftSymbol  = '└'
+	GameFrameBottomRightSymbol = '┘'
+)
 
 type Point struct {
 	row, col int
@@ -45,6 +52,7 @@ var screen tcell.Screen
 var snake *Snake
 var apple *Apple
 var score int
+var pointsToClear []*Point
 var isGameOver bool
 var IsGamePaused bool
 var debugLog string
@@ -75,13 +83,29 @@ func DrawState() {
 		return
 	}
 
-	screen.Clear()
-	PrintString(0, 0, debugLog)
+	//screen.Clear()
+	for _, p := range pointsToClear {
+		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, ' ')
+	}
+
+	pointsToClear = []*Point{}
 	PrintGameFrame()
-	PrintSnake()
-	PrintApple()
+	DrawSnake()
+	DrawApple()
 
 	screen.Show()
+}
+
+func DrawSnake() {
+	for _, p := range snake.parts {
+		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, snake.symbol)
+		pointsToClear = append(pointsToClear, p)
+	}
+}
+
+func DrawApple() {
+	PrintFilledRectInGameFrame(apple.point.row, apple.point.col, 1, 1, apple.symbol)
+	pointsToClear = append(pointsToClear, apple.point)
 }
 
 func UpdateState() {
@@ -128,8 +152,8 @@ func SnakeCollidedWithItself() bool {
 
 func SnakeCollidedWithWall() bool {
 	head := GetSnakeHead()
-	if head.row < 1 || head.row > GameFrameHeight ||
-		head.col < 1 || head.col > GameFrameWidth {
+	if head.row < 1 || head.row >= GameFrameHeight ||
+		head.col < 1 || head.col >= GameFrameWidth {
 		return true
 	}
 	return false
@@ -239,14 +263,8 @@ func PrintGameFrame() {
 	topLeftRow, topLeftCol := GetGameFrameTopLeft()
 	width, height := GameFrameWidth+1, GameFrameHeight+1
 
-	PrintUnFilledRect(topLeftRow, topLeftCol, width, height, GameFrameSymbol)
+	PrintUnFilledRect(topLeftRow, topLeftCol, width, height)
 	// PrintUnFilledRect(topLeftRow+1, topLeftCol+1, GameFrameWidth, GameFrameHeight, '*')
-}
-
-func PrintSnake() {
-	for _, p := range snake.parts {
-		PrintFilledRectInGameFrame(p.row, p.col, 1, 1, snake.symbol)
-	}
 }
 
 func PrintFilledRectInGameFrame(row, col, width, height int, ch rune) {
@@ -258,10 +276,6 @@ func GetGameFrameTopLeft() (int, int) {
 	screenWidth, screenHeight := screen.Size()
 	r, c := screenHeight/2-GameFrameHeight/2, screenWidth/2-GameFrameWidth/2
 	return r, c
-}
-
-func PrintApple() {
-	PrintFilledRectInGameFrame(apple.point.row, apple.point.col, 1, 1, apple.symbol)
 }
 
 func PrintString(row, col int, str string) {
@@ -284,20 +298,25 @@ func PrintFilledRect(row, col, width, height int, ch rune) {
 	}
 }
 
-func PrintUnFilledRect(row, col, width, height int, ch rune) {
+func PrintUnFilledRect(row, col, width, height int) {
 	// print first row
 	for c := 0; c < width; c++ {
-		screen.SetContent(col+c, row, ch, nil, tcell.StyleDefault)
+		screen.SetContent(col+c, row, GameFrameHorizontalSymbol, nil, tcell.StyleDefault)
 	}
 
 	// print first col, last col only for each row
 	for r := 1; r < height-1; r++ {
-		screen.SetContent(col, row+r, ch, nil, tcell.StyleDefault)
-		screen.SetContent(col+width-1, row+r, ch, nil, tcell.StyleDefault)
+		screen.SetContent(col, row+r, GameFrameVerticalSymbol, nil, tcell.StyleDefault)
+		screen.SetContent(col+width-1, row+r, GameFrameVerticalSymbol, nil, tcell.StyleDefault)
 	}
 
 	// print last row
 	for c := 0; c < width; c++ {
-		screen.SetContent(col+c, row+height-1, ch, nil, tcell.StyleDefault)
+		screen.SetContent(col+c, row+height-1, GameFrameHorizontalSymbol, nil, tcell.StyleDefault)
 	}
+
+	screen.SetContent(col, row, GameFrameTopLeftSymbol, nil, tcell.StyleDefault)
+	screen.SetContent(col+width-1, row, GameFrameTopRightSymbol, nil, tcell.StyleDefault)
+	screen.SetContent(col, row+height-1, GameFrameBottomLeftSymbol, nil, tcell.StyleDefault)
+	screen.SetContent(col+width-1, row+height-1, GameFrameBottomRightSymbol, nil, tcell.StyleDefault)
 }
